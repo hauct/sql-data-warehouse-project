@@ -1,0 +1,4 @@
+python -m venv env
+env/Scripts/activate
+
+DataWarehouse> \copy bronze.crm_cust_info FROM 'datasets/source_crm/cust_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
