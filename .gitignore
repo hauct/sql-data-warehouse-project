@@ -23,3 +23,5 @@ Thumbs.db
 *.csv
 *.png
 *.pdf
+
+env

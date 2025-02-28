@@ -1,4 +1,9 @@
 python -m venv env
 env/Scripts/activate
+pip install -r requirements.txt
 
-DataWarehouse> \copy bronze.crm_cust_info FROM 'datasets/source_crm/cust_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
+env $(grep -v '^#' .env) pgcli $DATABASE_URL
+
+\copy bronze.crm_cust_info FROM 'datasets/source_crm/cust_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
+\copy bronze.crm_prd_info FROM 'datasets/source_crm/prd_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
+\copy bronze.crm_sales_details FROM 'datasets/source_crm/sales_details.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
