@@ -2,7 +2,7 @@ python -m venv env
 env/Scripts/activate
 pip install -r requirements.txt
 
-env $(grep -v '^#' .env) pgcli $DATABASE_URL
+pgcli postgresql://postgres:postgres@$localhost:5432/DataWarehouse
 
 \copy bronze.crm_cust_info FROM 'datasets/source_crm/cust_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
 \copy bronze.crm_prd_info FROM 'datasets/source_crm/prd_info.csv' WITH (FORMAT csv, HEADER true, DELIMITER ',');
