@@ -105,7 +105,7 @@ BEGIN
             RAISE EXCEPTION 'Error loading crm_prd_info: %', SQLERRM;
     END;
 
-    -- Load crm_sales_details (other tables follow similar pattern)
+    -- Load crm_sales_details
     RAISE NOTICE '---------------------------------------------';
     RAISE NOTICE 'Processing Table: silver.crm_sales_details';
     RAISE NOTICE '---------------------------------------------';
@@ -122,19 +122,19 @@ BEGIN
             sls_prd_key,
             sls_cust_id,
             CASE
-                WHEN sls_order_dt = 0 OR LENGTH(CAST(sls_order_dt AS VARCHAR)) != 8 
-                THEN NULL 
-                ELSE CAST(CAST(sls_order_dt AS VARCHAR) AS DATE)
+                WHEN CAST(sls_order_dt AS TEXT) ~ '^\d{8}$' THEN TO_DATE(CAST(sls_order_dt AS TEXT), 'YYYYMMDD')
+                WHEN CAST(sls_order_dt AS TEXT) ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST(sls_order_dt AS TEXT)::DATE
+                ELSE NULL
             END AS sls_order_dt,
             CASE
-                WHEN sls_ship_dt = 0 OR LENGTH(CAST(sls_ship_dt AS VARCHAR)) != 8 
-                THEN NULL
-                ELSE CAST(CAST(sls_ship_dt AS VARCHAR) AS DATE)
+                WHEN CAST(sls_ship_dt AS TEXT) ~ '^\d{8}$' THEN TO_DATE(CAST(sls_ship_dt AS TEXT), 'YYYYMMDD')
+                WHEN CAST(sls_ship_dt AS TEXT) ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST(sls_ship_dt AS TEXT)::DATE
+                ELSE NULL
             END AS sls_ship_dt,
             CASE
-                WHEN sls_due_dt = 0 OR LENGTH(CAST(sls_due_dt AS VARCHAR)) != 8 
-                THEN NULL
-                ELSE CAST(CAST(sls_due_dt AS VARCHAR) AS DATE)
+                WHEN CAST(sls_due_dt AS TEXT) ~ '^\d{8}$' THEN TO_DATE(CAST(sls_due_dt AS TEXT), 'YYYYMMDD')
+                WHEN CAST(sls_due_dt AS TEXT) ~ '^\d{4}-\d{2}-\d{2}$' THEN CAST(sls_due_dt AS TEXT)::DATE
+                ELSE NULL
             END AS sls_due_dt,
             CASE
                 WHEN sls_sales IS NULL OR sls_sales <= 0 
@@ -160,7 +160,111 @@ BEGIN
             RAISE EXCEPTION 'Error loading crm_sales_details: %', SQLERRM;
     END;
 
-    -- Add similar blocks for other tables (erp_cust_az12, erp_loc_a101...)
+    -- Load erp_cust_az12
+    RAISE NOTICE '---------------------------------------------';
+    RAISE NOTICE 'Processing Table: silver.erp_cust_az12';
+    RAISE NOTICE '---------------------------------------------';
+    BEGIN
+        start_time := clock_timestamp();
+        TRUNCATE TABLE silver.erp_cust_az12;
+        
+        INSERT INTO silver.erp_cust_az12 (
+            cid,
+            bdate,
+            gen
+        )
+        SELECT
+            CASE
+                WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4)
+                ELSE cid
+            END AS cid,
+            CASE
+                WHEN bdate > CURRENT_DATE THEN NULL
+                ELSE bdate::DATE
+            END AS bdate,
+            CASE
+                WHEN UPPER(TRIM(gen)) IN ('F', 'FEMALE') THEN 'Female'
+                WHEN UPPER(TRIM(gen)) IN ('M', 'MALE') THEN 'Male'
+                ELSE 'n/a'
+            END AS gen
+        FROM bronze.erp_cust_az12;
+
+        end_time := clock_timestamp();
+        duration := end_time - start_time;
+        RAISE NOTICE 'Loaded % rows in % seconds', 
+            (SELECT COUNT(*) FROM silver.erp_cust_az12), 
+            EXTRACT(EPOCH FROM duration);
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE EXCEPTION 'Error loading erp_cust_az12: %', SQLERRM;
+    END;
+
+    -- Load erp_loc_a101
+    RAISE NOTICE '---------------------------------------------';
+    RAISE NOTICE 'Processing Table: silver.erp_loc_a101';
+    RAISE NOTICE '---------------------------------------------';
+    BEGIN
+        start_time := clock_timestamp();
+        TRUNCATE TABLE silver.erp_loc_a101;
+        
+        INSERT INTO silver.erp_loc_a101 (
+            cid,
+            cntry
+        )
+        SELECT
+            REPLACE(cid, '-', '') AS cid,
+            CASE
+                WHEN TRIM(cntry) = 'DE' THEN 'Germany'
+                WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
+                WHEN TRIM(cntry) = '' OR cntry IS NULL THEN 'n/a'
+                ELSE INITCAP(LOWER(TRIM(cntry)))
+            END AS cntry
+        FROM bronze.erp_loc_a101;
+
+        end_time := clock_timestamp();
+        duration := end_time - start_time;
+        RAISE NOTICE 'Loaded % rows in % seconds', 
+            (SELECT COUNT(*) FROM silver.erp_loc_a101), 
+            EXTRACT(EPOCH FROM duration);
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE EXCEPTION 'Error loading erp_loc_a101: %', SQLERRM;
+    END;
+
+    -- Load erp_px_cat_g1v2
+    RAISE NOTICE '---------------------------------------------';
+    RAISE NOTICE 'Processing Table: silver.erp_px_cat_g1v2';
+    RAISE NOTICE '---------------------------------------------';
+    BEGIN
+        start_time := clock_timestamp();
+        TRUNCATE TABLE silver.erp_px_cat_g1v2;
+        
+        INSERT INTO silver.erp_px_cat_g1v2 (
+            id,
+            cat,
+            subcat,
+            maintenance
+        )
+        SELECT
+            id,
+            TRIM(cat) AS cat,
+            TRIM(subcat) AS subcat,
+            CASE
+                WHEN maintenance = 'Y' THEN 'Yes'
+                WHEN maintenance = 'N' THEN 'No'
+                ELSE 'Unknown'
+            END AS maintenance
+        FROM bronze.erp_px_cat_g1v2;
+
+        end_time := clock_timestamp();
+        duration := end_time - start_time;
+        RAISE NOTICE 'Loaded % rows in % seconds', 
+            (SELECT COUNT(*) FROM silver.erp_px_cat_g1v2), 
+            EXTRACT(EPOCH FROM duration);
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE EXCEPTION 'Error loading erp_px_cat_g1v2: %', SQLERRM;
+    END;
 
     total_end_time := clock_timestamp();
     total_duration := total_end_time - total_start_time;

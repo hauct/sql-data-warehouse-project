@@ -1,3 +1,10 @@
+DROP TABLE IF EXISTS silver.crm_cust_info;
+DROP TABLE IF EXISTS silver.crm_prd_info;
+DROP TABLE IF EXISTS silver.crm_sales_details;
+DROP TABLE IF EXISTS silver.erp_loc_a101;
+DROP TABLE IF EXISTS silver.erp_cust_az12;
+DROP TABLE IF EXISTS silver.erp_px_cat_g1v2;
+
 CREATE TABLE IF NOT EXISTS silver.crm_cust_info (
 cst_id INT
 , cst_key VARCHAR(50)
